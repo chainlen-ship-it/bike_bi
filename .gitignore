@@ -1,0 +1,6 @@
+data/*.csv
+.venv/
+.codex/
+.agents/
+__pycache__/
+src/__pycache__/

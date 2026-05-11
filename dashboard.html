@@ -1,0 +1,1929 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cyclistic Fleet Intelligence Dashboard</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIINfQj59iS4iJxyK7yxLkBWo3L4LkM1Y4o="
+    crossorigin=""
+  >
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #151923;
+      --panel-soft: #1b2130;
+      --text: #f0f0f0;
+      --muted: #9ca3af;
+      --teal: #2dd4bf;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --gray: #6b7280;
+      --green: #34d399;
+      --border: #263043;
+      --focus: #67e8f9;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+    }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    input[type="range"]:focus-visible,
+    input[type="checkbox"]:focus-visible,
+    input[type="radio"]:focus-visible,
+    a:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    /* Site navigation (shared with course2_reports.html) */
+    .site-nav {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px clamp(20px, 4vw, 56px);
+      background: #0a0c12;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .site-nav a {
+      color: var(--muted);
+      text-decoration: none;
+      padding: 6px 4px;
+    }
+
+    .site-nav a:hover,
+    .site-nav a:focus-visible {
+      color: var(--teal);
+      outline: none;
+    }
+
+    .site-nav a.is-current {
+      color: var(--teal);
+    }
+
+    .nav-divider {
+      color: var(--border);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) minmax(280px, 0.9fr) minmax(220px, 0.8fr);
+      gap: 32px;
+      align-items: center;
+      width: 100%;
+      padding: 28px clamp(20px, 4vw, 56px);
+      border-bottom: 1px solid var(--teal);
+      background: #0d1016;
+    }
+
+    .hero-block {
+      min-width: 0;
+    }
+
+    .eyebrow,
+    .section-label {
+      margin: 0 0 10px;
+      color: var(--teal);
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .hero-number {
+      margin: 0;
+      color: #fff;
+      font-size: 48px;
+      font-weight: 850;
+      line-height: 1;
+    }
+
+    .formula {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .slider-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .slider-value {
+      color: #fff;
+      font-size: 28px;
+      font-weight: 800;
+      min-width: 68px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--teal);
+      cursor: pointer;
+    }
+
+    .check-row,
+    .radio-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      min-height: 34px;
+      color: var(--text);
+    }
+
+    .check-row input,
+    .radio-row input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--teal);
+      cursor: pointer;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 170px;
+      min-height: 52px;
+      padding: 10px 24px;
+      border-radius: 999px;
+      background: rgba(52, 211, 153, 0.15);
+      color: var(--green);
+      border: 1px solid rgba(52, 211, 153, 0.7);
+      font-size: 20px;
+      font-weight: 850;
+      text-transform: uppercase;
+    }
+
+    .status-badge.near-capacity {
+      animation: blinkStatus 1s steps(2, start) infinite;
+    }
+
+    @keyframes blinkStatus {
+      50% {
+        opacity: 0.35;
+      }
+    }
+
+    main {
+      display: grid;
+      gap: 28px;
+      padding: 28px clamp(16px, 3vw, 40px) 34px;
+    }
+
+    .map-section {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .sidebar,
+    .card-section {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .sidebar {
+      padding: 18px;
+      position: sticky;
+      top: 12px;
+    }
+
+    .control-group {
+      margin-bottom: 18px;
+    }
+
+    .control-title {
+      margin: 0 0 8px;
+      color: var(--teal);
+      font-size: 16px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .filters-collapse {
+      position: relative;
+      margin-bottom: 18px;
+    }
+
+    .filters-collapse > summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #10141d;
+      color: var(--teal);
+      font-size: 16px;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+
+    .filters-collapse > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .filters-collapse > summary::marker {
+      content: '';
+    }
+
+    .filters-collapse > summary:hover,
+    .filters-collapse > summary:focus-visible {
+      border-color: var(--teal);
+      outline: none;
+    }
+
+    .filters-carrot {
+      display: inline-block;
+      transition: transform 0.18s ease;
+      font-size: 13px;
+    }
+
+    .filters-collapse[open] .filters-carrot {
+      transform: rotate(0deg);
+    }
+
+    .filters-collapse:not([open]) .filters-carrot {
+      transform: rotate(-90deg);
+    }
+
+    .filters-collapse[open] .filters-body {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      z-index: 50;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    .filters-collapse[open] .filters-body .control-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .divider {
+      height: 1px;
+      margin: 18px 0;
+      background: var(--border);
+    }
+
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .dot.teal { background: var(--teal); }
+    .dot.yellow { background: var(--yellow); }
+    .dot.gray { background: var(--gray); }
+    .dot.red { background: var(--red); }
+
+    .warning {
+      margin: 4px 0 0 28px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .detail-card {
+      display: grid;
+      gap: 8px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #10141d;
+      color: var(--muted);
+    }
+
+    .detail-card + .detail-card {
+      margin-top: 10px;
+    }
+
+    .detail-card.pair-flow {
+      border-color: var(--teal);
+      background: rgba(45, 212, 191, 0.08);
+    }
+
+    .detail-card strong {
+      color: var(--text);
+      font-weight: 750;
+    }
+
+    .refill-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .refill-badge.refill-need {
+      background: rgba(248, 113, 113, 0.18);
+      color: #fca5a5;
+      border: 1px solid rgba(248, 113, 113, 0.45);
+    }
+
+    .refill-badge.refill-self {
+      background: rgba(52, 211, 153, 0.16);
+      color: #6ee7b7;
+      border: 1px solid rgba(52, 211, 153, 0.45);
+    }
+
+    .detail-grid {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .detail-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 5px;
+      font-size: 14px;
+    }
+
+    .map-column {
+      min-width: 0;
+    }
+
+    .trend-strip {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 220px;
+      gap: 18px;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .trend-chart-frame {
+      position: relative;
+      height: 180px;
+      min-width: 0;
+    }
+
+    .trend-controls {
+      display: grid;
+      gap: 8px;
+    }
+
+    .trend-controls select {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #10141d;
+      color: var(--text);
+      padding: 7px 10px;
+    }
+
+    .selection-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #10141d;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .text-button {
+      min-height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #151923;
+      color: var(--text);
+      cursor: pointer;
+      padding: 6px 10px;
+    }
+
+    .text-button:hover,
+    .text-button:focus-visible {
+      border-color: var(--teal);
+    }
+
+    #station-map {
+      height: 500px;
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #090b10;
+    }
+
+    .table-wrap {
+      margin-top: 16px;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--teal);
+      font-size: 14px;
+      text-transform: uppercase;
+      background: #111722;
+    }
+
+    tbody tr:hover {
+      background: rgba(45, 212, 191, 0.09);
+    }
+
+    tbody tr {
+      cursor: pointer;
+    }
+
+    tbody tr.selected-row {
+      background: rgba(45, 212, 191, 0.16);
+      box-shadow: inset 3px 0 0 var(--teal);
+    }
+
+    tbody tr.active-row {
+      box-shadow: inset 3px 0 0 var(--yellow);
+    }
+
+    tr.section-header > td {
+      padding: 8px 14px;
+      background: #111722;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      cursor: default;
+    }
+
+    tr.section-header:hover {
+      background: #111722 !important;
+    }
+
+    #pinned-table-body tr.section-header > td {
+      background: rgba(45, 212, 191, 0.12);
+    }
+
+    #pinned-table-body tr[data-station-id] td:first-child::before {
+      content: '★ ';
+      color: var(--teal);
+    }
+
+    tr[data-station-id][draggable="true"] {
+      cursor: grab;
+    }
+
+    tr.dragging {
+      opacity: 0.4;
+    }
+
+    tbody.drop-target tr td {
+      background: rgba(45, 212, 191, 0.22) !important;
+    }
+
+    tr.placeholder-row > td {
+      padding: 14px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .search-hidden {
+      display: none;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .sort-indicator {
+      color: var(--yellow);
+      margin-left: 5px;
+    }
+
+    .tier-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .card-section {
+      padding: 22px;
+    }
+
+    .card-section .section-label {
+      margin-bottom: 18px;
+    }
+
+    .chart-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 230px;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .chart-frame {
+      position: relative;
+      height: 300px;
+      min-width: 0;
+    }
+
+    .chart-side {
+      display: grid;
+      gap: 14px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #10141d;
+    }
+
+    .annotation {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .insight {
+      margin: 18px 0 0;
+      padding: 16px;
+      border-left: 4px solid var(--teal);
+      border-radius: 4px;
+      background: rgba(45, 212, 191, 0.08);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .population-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
+      gap: 20px;
+    }
+
+    .placeholder-copy {
+      margin: 0;
+      color: var(--text);
+      font-size: 18px;
+    }
+
+    .latent-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .latent-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #10141d;
+    }
+
+    .latent-label {
+      color: var(--yellow);
+      font-weight: 750;
+    }
+
+    .assumption {
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    footer {
+      display: grid;
+      gap: 4px;
+      padding: 24px 16px 34px;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .leaflet-container {
+      font: inherit;
+    }
+
+    .leaflet-container {
+      position: relative;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .leaflet-pane,
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow,
+    .leaflet-tile-container,
+    .leaflet-pane > svg,
+    .leaflet-pane > canvas,
+    .leaflet-zoom-box,
+    .leaflet-image-layer,
+    .leaflet-layer {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow {
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .leaflet-control-container .leaflet-top,
+    .leaflet-control-container .leaflet-bottom {
+      position: absolute;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .leaflet-top { top: 0; }
+    .leaflet-right { right: 0; }
+    .leaflet-bottom { bottom: 0; }
+    .leaflet-left { left: 0; }
+
+    .leaflet-control {
+      float: left;
+      clear: both;
+      pointer-events: auto;
+    }
+
+    .leaflet-right .leaflet-control {
+      float: right;
+    }
+
+    .leaflet-top .leaflet-control {
+      margin-top: 10px;
+    }
+
+    .leaflet-left .leaflet-control {
+      margin-left: 10px;
+    }
+
+    .leaflet-bottom .leaflet-control {
+      margin-bottom: 10px;
+    }
+
+    .leaflet-right .leaflet-control {
+      margin-right: 10px;
+    }
+
+    .leaflet-control-zoom {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #111722;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    .leaflet-control-zoom a {
+      display: block;
+      width: 32px;
+      height: 32px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      text-align: center;
+      text-decoration: none;
+      font-size: 22px;
+      line-height: 30px;
+      background: #111722;
+    }
+
+    .leaflet-control-zoom a:last-child {
+      border-bottom: 0;
+    }
+
+    .leaflet-control-attribution {
+      padding: 4px 6px;
+      background: rgba(15, 17, 23, 0.8);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .leaflet-control-attribution a {
+      color: var(--teal);
+    }
+
+    .sample-marker {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 0 0 2px rgba(15, 17, 23, 0.8), 0 3px 10px rgba(0, 0, 0, 0.45);
+    }
+
+    .sample-marker.teal { background: var(--teal); }
+    .sample-marker.yellow { background: var(--yellow); }
+    .sample-marker.gray { background: var(--gray); }
+    .sample-marker.red { background: var(--red); }
+
+    .leaflet-tooltip.flow-pair-label {
+      background: rgba(15, 17, 23, 0.92);
+      border: 1px solid var(--teal);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+    }
+
+    .leaflet-tooltip.flow-pair-label::before {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .map-section,
+      .chart-layout,
+      .population-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .hero {
+        gap: 24px;
+        padding: 24px 18px;
+      }
+
+      .hero-number {
+        font-size: 44px;
+      }
+
+      .eyebrow,
+      .section-label {
+        font-size: 24px;
+      }
+
+      #station-map {
+        height: 420px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav" aria-label="Page navigation">
+    <a href="dashboard.html" class="is-current" aria-current="page">&larr; Fleet Intelligence</a>
+    <span class="nav-divider" aria-hidden="true">|</span>
+    <a href="course2_reports.html">Course 2 Reports &rarr;</a>
+  </nav>
+
+  <header class="hero" aria-label="Fleet status summary">
+    <section class="hero-block" aria-label="Bikes needed at peak">
+      <p class="eyebrow">Bikes Needed At Peak</p>
+      <p id="bikes-needed" class="hero-number">Loading</p>
+      <p class="formula">peak_bikes_in_use × (1 + buffer%) = total_fleet_needed</p>
+    </section>
+
+    <section class="hero-block" aria-label="Fleet buffer controls">
+      <p class="eyebrow">Buffer %</p>
+      <div class="slider-row">
+        <input id="buffer-slider" type="range" min="0" max="100" value="30" step="1" aria-label="Buffer percentage">
+        <output id="buffer-value" class="slider-value" for="buffer-slider">30%</output>
+      </div>
+      <label class="check-row" for="maintenance-toggle">
+        <input id="maintenance-toggle" type="checkbox">
+        <span>+ 5% maintenance pool</span>
+      </label>
+    </section>
+
+    <section class="hero-block" aria-label="Fleet status">
+      <p class="eyebrow">Fleet Status</p>
+      <div id="fleet-status" class="status-badge" aria-label="Fleet status is loading">Loading</div>
+    </section>
+  </header>
+
+  <main>
+    <section class="map-section" aria-labelledby="map-section-title">
+      <aside class="sidebar">
+        <details class="filters-collapse" open>
+          <summary aria-label="Toggle station filters">
+            <span class="filters-carrot" aria-hidden="true">▾</span>
+            <span id="map-section-title">Filters</span>
+          </summary>
+          <div class="filters-body">
+            <div class="control-group">
+              <p class="control-title">Filter Stations</p>
+              <label class="radio-row"><input class="year-filter" type="radio" name="year" value="2013"> 2013</label>
+              <label class="radio-row"><input class="year-filter" type="radio" name="year" value="2014"> 2014</label>
+              <label class="radio-row"><input class="year-filter" type="radio" name="year" value="2015" checked> 2015</label>
+            </div>
+
+            <div class="control-group" aria-label="Activity tier filters">
+              <p class="control-title">Activity Tier</p>
+              <label class="check-row"><input class="tier-filter" type="checkbox" value="all" checked> All</label>
+              <label class="check-row"><input class="tier-filter" type="checkbox" value="high"> <span><span class="dot teal"></span>High Use</span></label>
+              <label class="check-row"><input class="tier-filter" type="checkbox" value="medium"> <span><span class="dot yellow"></span>Medium Use</span></label>
+              <label class="check-row"><input class="tier-filter" type="checkbox" value="no-mans"> <span><span class="dot red"></span>Low Use</span></label>
+            </div>
+
+            <div class="control-group" aria-label="Rider type filters">
+              <p class="control-title">Rider Type</p>
+              <label class="check-row"><input class="rider-filter" type="checkbox" value="all" checked> All</label>
+              <label class="check-row"><input class="rider-filter" type="checkbox" value="Subscriber"> Subscriber</label>
+              <label class="check-row"><input class="rider-filter" type="checkbox" value="Customer"> Customer</label>
+            </div>
+
+            <div class="control-group">
+              <label class="check-row"><input id="flow-toggle" type="checkbox"> Show trip flow lines</label>
+              <p class="warning">May be dense with all stations</p>
+            </div>
+          </div>
+        </details>
+
+        <div class="control-group">
+          <p class="control-title">Search Stations</p>
+          <input id="station-search" type="search" placeholder="Type to find a station…" autocomplete="off" style="width:100%;padding:7px 10px;background:#10141d;border:1px solid var(--border);border-radius:6px;color:var(--text);font:inherit;font-size:14px;" aria-label="Search and select stations by name">
+          <p class="warning" id="search-hint" style="margin-top:6px;display:none"></p>
+        </div>
+
+        <div class="divider"></div>
+
+        <section aria-label="Station detail">
+          <h3 class="control-title">Station Detail</h3>
+          <div id="detail-container">
+            <div class="detail-card">
+              <strong>Click a station marker to see details</strong>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <div class="map-column">
+        <div class="trend-strip" aria-label="Station class trend chart">
+          <div class="trend-chart-frame">
+            <canvas id="station-class-chart" role="img" aria-label="Line chart showing station activity trend by selected class"></canvas>
+          </div>
+          <div class="trend-controls">
+            <label class="control-title" for="station-class-select">Station Class Trend</label>
+            <select id="station-class-select">
+              <option value="all">All stations</option>
+              <option value="high">High Use</option>
+              <option value="medium">Medium Use</option>
+              <option value="no-mans">Low Use</option>
+            </select>
+          </div>
+        </div>
+        <div id="station-map" role="img" aria-label="NYC station map with Citi Bike station markers"></div>
+        <div class="table-wrap" aria-label="Station companion table">
+          <table>
+            <thead>
+              <tr>
+                <th>Station</th>
+                <th>Tier</th>
+                <th>Trips Out</th>
+                <th>Trips In</th>
+                <th>Balance <span class="sort-indicator" aria-label="Sorted descending">▼</span></th>
+                <th>Refill</th>
+                <th>Allocated Bikes</th>
+              </tr>
+            </thead>
+            <tbody id="pinned-table-body" aria-label="Selected stations">
+              <tr class="section-header"><td colspan="7">Selected (0) — drag rows here to pin</td></tr>
+              <tr class="placeholder-row"><td colspan="7">No selected stations. Click a map dot, click a row, or drag a row here.</td></tr>
+            </tbody>
+            <tbody id="station-table-body" aria-label="All stations">
+              <tr class="section-header"><td colspan="7">All Stations</td></tr>
+              <tr><td colspan="7">Loading station data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="selection-bar" aria-label="Station selection controls">
+          <span id="station-selection-summary">Click a map dot or drag rows up to pin. Selected stations focus flow lines.</span>
+          <label class="check-row" for="show-selected-only">
+            <input id="show-selected-only" type="checkbox">
+            <span>Show selected only</span>
+          </label>
+          <button id="clear-station-selection" class="text-button" type="button">Clear selected</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card-section" aria-labelledby="seasonal-title">
+      <h2 id="seasonal-title" class="section-label">Seasonal Trend 2013–2015</h2>
+      <div class="chart-layout">
+        <div class="chart-frame">
+          <canvas id="seasonal-chart" role="img" aria-label="Line chart showing placeholder seasonal trip totals for 2013, 2014, and 2015"></canvas>
+        </div>
+        <aside class="chart-side">
+          <label class="check-row"><input id="split-rider-toggle" type="checkbox"> Split by rider type</label>
+          <p class="annotation">Winter 2015 outlier annotation placeholder: weather disruption reduced ridership.</p>
+        </aside>
+      </div>
+      <p class="insight">Summer peak is XX% above annual average — fleet sizing should target summer demand</p>
+    </section>
+
+    <section class="card-section" aria-labelledby="population-title">
+      <h2 id="population-title" class="section-label">Population Context</h2>
+      <div class="population-grid">
+        <p class="placeholder-copy">
+          Census tract overlay coming in next build step. Low-activity stations in high-density areas flagged as latent demand zones.
+        </p>
+        <ul class="latent-list" aria-label="Placeholder latent demand station list">
+          <li><span>Canal St &amp; Rutgers St</span><span class="latent-label">Latent demand +18%</span></li>
+          <li><span>Clinton Ave &amp; Myrtle Ave</span><span class="latent-label">Latent demand +14%</span></li>
+          <li><span>Dean St &amp; 4 Ave</span><span class="latent-label">Latent demand +11%</span></li>
+        </ul>
+      </div>
+      <p class="assumption">
+        Population data is directional context, not hard evidence. Catchment area: 1-mile radius from station coordinates.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <div id="last-refresh">Last data refresh: loading</div>
+    <div>Data: NYC Citi Bike Trips 2013–2015 | US Census Bureau Boundaries</div>
+    <div>Cyclistic Fleet Intelligence Dashboard — Google BI Certificate Portfolio Project</div>
+  </footer>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin="">
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <script>
+    const state = {
+      stations: [],
+      seasonal: [],
+      fleet: [],
+      population: [],
+      flows: null,
+      selectedYear: 2015,
+      selectedRider: 'all',
+      selectedTiers: new Set(['all']),
+      bikesNeeded: 0,
+      peakBikes: 0,
+      selectedStationIds: new Set(),
+      activeStationId: null,
+      stationMarkers: L.layerGroup(),
+      stationMarkerIndex: new Map(),
+      flowLayer: L.layerGroup(),
+      stationChart: null,
+      seasonalChart: null
+    };
+
+    const seasonOrder = ['Winter', 'Spring', 'Summer', 'Fall'];
+    const tierColors = {
+      high: '#2dd4bf',
+      medium: '#fbbf24',
+      low: '#6b7280',
+      'no-mans': '#f87171'
+    };
+
+    const tierClass = {
+      high: 'teal',
+      medium: 'yellow',
+      low: 'gray',
+      'no-mans': 'red'
+    };
+
+    const tierLabels = {
+      high: 'High Use',
+      medium: 'Medium Use',
+      low: 'Low Use',
+      'no-mans': 'Low Use'
+    };
+
+    const files = {
+      stations: 'data/stations.csv',
+      seasonal: 'data/seasonal.csv',
+      fleet: 'data/fleet.csv',
+      population: 'data/population.csv'
+    };
+
+    const bufferSlider = document.getElementById('buffer-slider');
+    const bufferValue = document.getElementById('buffer-value');
+    const maintenanceToggle = document.getElementById('maintenance-toggle');
+    const bikesNeededEl = document.getElementById('bikes-needed');
+    const fleetStatusEl = document.getElementById('fleet-status');
+    const stationTableBody = document.getElementById('station-table-body');
+    const pinnedTableBody = document.getElementById('pinned-table-body');
+    const stationClassSelect = document.getElementById('station-class-select');
+    const flowToggle = document.getElementById('flow-toggle');
+    const showSelectedOnly = document.getElementById('show-selected-only');
+    const clearStationSelection = document.getElementById('clear-station-selection');
+    const stationSelectionSummary = document.getElementById('station-selection-summary');
+    const splitRiderToggle = document.getElementById('split-rider-toggle');
+    const lastRefreshEl = document.getElementById('last-refresh');
+
+    const numberFormat = new Intl.NumberFormat('en-US');
+
+    bufferSlider.addEventListener('input', () => {
+      bufferValue.textContent = `${bufferSlider.value}%`;
+      updateFleetHero();
+      renderStations();
+    });
+    maintenanceToggle.addEventListener('change', () => {
+      updateFleetHero();
+      renderStations();
+    });
+
+    const map = L.map('station-map', {
+      zoomControl: true,
+      attributionControl: true
+    }).setView([40.7128, -74.0060], 12);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; CartoDB'
+    }).addTo(map);
+
+    state.stationMarkers.addTo(map);
+    state.flowLayer.addTo(map);
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let field = '';
+      let quoted = false;
+
+      for (let i = 0; i < text.length; i += 1) {
+        const char = text[i];
+        const next = text[i + 1];
+
+        if (char === '"') {
+          if (quoted && next === '"') {
+            field += '"';
+            i += 1;
+          } else {
+            quoted = !quoted;
+          }
+        } else if (char === ',' && !quoted) {
+          row.push(field);
+          field = '';
+        } else if ((char === '\n' || char === '\r') && !quoted) {
+          if (char === '\r' && next === '\n') i += 1;
+          row.push(field);
+          if (row.some((value) => value !== '')) rows.push(row);
+          row = [];
+          field = '';
+        } else {
+          field += char;
+        }
+      }
+
+      if (field || row.length) {
+        row.push(field);
+        rows.push(row);
+      }
+
+      const [headers, ...dataRows] = rows;
+      return dataRows.map((values) => Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ''])));
+    }
+
+    async function loadCsv(path) {
+      const response = await fetch(path, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Unable to load ${path}`);
+      return parseCsv(await response.text());
+    }
+
+    function toNumber(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    function formatNumber(value) {
+      return numberFormat.format(Math.round(toNumber(value)));
+    }
+
+    function signed(value) {
+      const number = Math.round(toNumber(value));
+      return number > 0 ? `+${numberFormat.format(number)}` : numberFormat.format(number);
+    }
+
+    function normalizeTier(row) {
+      const tier = row.activity_tier || row.start_activity_tier || 'low';
+      if (tier === 'low' && toNumber(row.total_station_activity) <= toNumber(row.p33)) return 'no-mans';
+      return tier;
+    }
+
+    function selectedTiers() {
+      return [...document.querySelectorAll('.tier-filter:checked')].map((input) => input.value);
+    }
+
+    function selectedRider() {
+      const checked = [...document.querySelectorAll('.rider-filter:checked')].map((input) => input.value);
+      if (checked.includes('all') || checked.length === 0 || checked.length > 1) return 'all';
+      return checked[0];
+    }
+
+    function isStationSelected(rowOrId) {
+      const stationId = typeof rowOrId === 'object' ? rowOrId.station_id : rowOrId;
+      return state.selectedStationIds.has(String(stationId));
+    }
+
+    function syncExclusiveCheckboxes(changedInput, selector) {
+      const inputs = [...document.querySelectorAll(selector)];
+      if (changedInput.value === 'all' && changedInput.checked) {
+        inputs.filter((input) => input.value !== 'all').forEach((input) => { input.checked = false; });
+      }
+      if (changedInput.value !== 'all' && changedInput.checked) {
+        inputs.find((input) => input.value === 'all').checked = false;
+      }
+      if (!inputs.some((input) => input.checked)) {
+        inputs.find((input) => input.value === 'all').checked = true;
+      }
+    }
+
+    function currentStations() {
+      const tiers = selectedTiers();
+      const rider = selectedRider();
+      return state.stations
+        .filter((row) => toNumber(row.trip_year) === state.selectedYear)
+        .filter((row) => row.selected_usertype === rider)
+        .filter((row) => tiers.includes('all') || tiers.includes(normalizeTier(row)))
+        .filter((row) => !showSelectedOnly.checked || state.selectedStationIds.size === 0 || isStationSelected(row));
+    }
+
+    function currentAllStationsForAllocation() {
+      const rider = selectedRider();
+      return state.stations
+        .filter((row) => toNumber(row.trip_year) === state.selectedYear)
+        .filter((row) => row.selected_usertype === rider);
+    }
+
+    function stationAllocation(row) {
+      const denominator = currentAllStationsForAllocation()
+        .reduce((sum, station) => sum + toNumber(station.total_station_activity), 0);
+      return denominator ? (toNumber(row.total_station_activity) / denominator) * state.bikesNeeded : 0;
+    }
+
+    function updateFleetHero() {
+      const yearFleet = state.fleet.filter((row) => toNumber(row.trip_year) === state.selectedYear);
+      const peak = yearFleet.reduce((max, row) => Math.max(max, toNumber(row.peak_bikes_in_use)), 0);
+      const bufferPct = toNumber(bufferSlider.value) / 100;
+      const maintenancePct = maintenanceToggle.checked ? 0.05 : 0;
+      const needed = Math.ceil(peak * (1 + bufferPct + maintenancePct));
+
+      state.peakBikes = peak;
+      state.bikesNeeded = needed;
+      bikesNeededEl.textContent = needed ? formatNumber(needed) : 'No data';
+
+      let status = 'Sufficient';
+      let statusColor = '#34d399';
+      let statusBorder = 'rgba(52, 211, 153, 0.7)';
+      let statusBackground = 'rgba(52, 211, 153, 0.15)';
+
+      if (bufferPct > 0.5) {
+        status = 'Overcapacity';
+        statusColor = '#fbbf24';
+        statusBorder = 'rgba(251, 191, 36, 0.7)';
+        statusBackground = 'rgba(251, 191, 36, 0.15)';
+      } else if (bufferPct < 0.1) {
+        status = 'Near Capacity!';
+        statusColor = '#f87171';
+        statusBorder = 'rgba(248, 113, 113, 0.85)';
+        statusBackground = 'rgba(248, 113, 113, 0.18)';
+      } else if (bufferPct < 0.3 && !maintenanceToggle.checked) {
+        status = 'Watch';
+        statusColor = '#fbbf24';
+        statusBorder = 'rgba(251, 191, 36, 0.7)';
+        statusBackground = 'rgba(251, 191, 36, 0.15)';
+      }
+
+      fleetStatusEl.textContent = status;
+      fleetStatusEl.setAttribute('aria-label', `Fleet status is ${status.toLowerCase()}`);
+      fleetStatusEl.classList.toggle('near-capacity', status === 'Near Capacity!');
+      fleetStatusEl.style.color = statusColor;
+      fleetStatusEl.style.borderColor = statusBorder;
+      fleetStatusEl.style.background = statusBackground;
+    }
+
+    const markerIcon = (tier, activity, selected = false) => {
+      const size = Math.max(12, Math.min(30, 10 + Math.sqrt(toNumber(activity)) / 18)) + (selected ? 4 : 0);
+      const shadow = selected ? '0 0 0 3px rgba(45, 212, 191, 0.35), 0 3px 10px rgba(0,0,0,0.45)' : '0 0 0 2px rgba(15, 17, 23, 0.8), 0 3px 10px rgba(0,0,0,0.45)';
+      return L.divIcon({
+        className: '',
+        html: `<div class="sample-marker ${tierClass[tier] || 'gray'}" style="width:${size}px;height:${size}px;box-shadow:${shadow}" role="img" aria-label="${tier} station marker"></div>`,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        popupAnchor: [0, -10]
+      });
+    };
+
+    function statusForBalance(netDepartures) {
+      const net = toNumber(netDepartures);
+      if (net > 10) return 'Drain';
+      if (net < -10) return 'Accumulator';
+      return 'Balanced';
+    }
+
+    const FLOW_DAYS_TOTAL = 3 * 365; // flows.csv aggregates 2013-2015
+
+    function refillBadgeHtml(row) {
+      const net = toNumber(row.net_departures);
+      const perDay = Math.abs(net) / 365;
+      if (net > 0) {
+        return `<span class="refill-badge refill-need" title="Manual refill needed: departures exceed arrivals">+${perDay.toFixed(1)}/day</span>`;
+      }
+      return `<span class="refill-badge refill-self" title="Self-filling: arrivals match or exceed departures">Self · ${perDay.toFixed(1)}/day</span>`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[ch]);
+    }
+
+    function buildDetailCardHtml(row) {
+      const tier = normalizeTier(row);
+      const population = state.population.find((item) =>
+        item.station_id === row.station_id &&
+        item.selected_usertype === row.selected_usertype
+      );
+      return `
+        <div class="detail-card">
+          <strong>${escapeHtml(row.station_name)}</strong>
+          <div class="detail-grid">
+            <div class="detail-line"><span>Station</span><span>${escapeHtml(row.station_id)}</span></div>
+            <div class="detail-line"><span>Tier</span><span>${tierLabels[tier] || tier}</span></div>
+            <div class="detail-line"><span>Trips Out</span><span>${formatNumber(row.departures)}</span></div>
+            <div class="detail-line"><span>Trips In</span><span>${formatNumber(row.arrivals)}</span></div>
+            <div class="detail-line"><span>Balance</span><span>${signed(row.net_departures)}</span></div>
+            <div class="detail-line"><span>Refill Need</span><span>${refillBadgeHtml(row)}</span></div>
+            <div class="detail-line"><span>Status</span><span>${statusForBalance(row.net_departures)}</span></div>
+            <div class="detail-line"><span>Population</span><span>${population ? signed(population.nearby_population_growth) : 'n/a'}</span></div>
+            <div class="detail-line"><span>Allocated Bikes</span><span>${formatNumber(stationAllocation(row))}</span></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function findFlowRow(startId, endId) {
+      if (!state.flows) return null;
+      const rider = selectedRider();
+      return state.flows.find((f) =>
+        f.selected_usertype === rider &&
+        String(f.start_station_id) === String(startId) &&
+        String(f.end_station_id) === String(endId)
+      ) || null;
+    }
+
+    function buildPairFlowHtml(rowA, rowB) {
+      if (!state.flows) {
+        return `
+          <div class="detail-card pair-flow">
+            <strong>Flow Between Selected</strong>
+            <p style="color:var(--muted);font-size:14px;margin:6px 0 0">Loading flow data…</p>
+          </div>
+        `;
+      }
+      const ab = findFlowRow(rowA.station_id, rowB.station_id);
+      const ba = findFlowRow(rowB.station_id, rowA.station_id);
+      const abDaily = toNumber(ab?.trips) / FLOW_DAYS_TOTAL;
+      const baDaily = toNumber(ba?.trips) / FLOW_DAYS_TOTAL;
+      const netDaily = abDaily - baDaily;
+      const winner = netDaily >= 0 ? rowB : rowA;
+      const loser = netDaily >= 0 ? rowA : rowB;
+      const balanceLine = (abDaily + baDaily) === 0
+        ? '<div class="detail-line"><span>Direct flow</span><span>None recorded</span></div>'
+        : `<div class="detail-line"><span>Net flow</span><span>${Math.abs(netDaily).toFixed(2)}/day · ${escapeHtml(loser.station_name)} → ${escapeHtml(winner.station_name)}</span></div>`;
+      return `
+        <div class="detail-card pair-flow">
+          <strong>Flow Between Selected (avg/day, 2013–2015)</strong>
+          <div class="detail-grid">
+            <div class="detail-line"><span>${escapeHtml(rowA.station_name)} → ${escapeHtml(rowB.station_name)}</span><span>${abDaily.toFixed(2)}/day</span></div>
+            <div class="detail-line"><span>${escapeHtml(rowB.station_name)} → ${escapeHtml(rowA.station_name)}</span><span>${baDaily.toFixed(2)}/day</span></div>
+            ${balanceLine}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDetail() {
+      const container = document.getElementById('detail-container');
+      const recentIds = [...state.selectedStationIds].slice(-2);
+      const yearRider = state.stations.filter((row) =>
+        toNumber(row.trip_year) === state.selectedYear &&
+        row.selected_usertype === selectedRider()
+      );
+      const detailRows = recentIds
+        .map((id) => yearRider.find((row) => String(row.station_id) === String(id)))
+        .filter(Boolean);
+
+      if (!detailRows.length) {
+        container.innerHTML = '<div class="detail-card"><strong>Click a station marker to see details</strong></div>';
+        return;
+      }
+
+      let html = detailRows.map(buildDetailCardHtml).join('');
+      if (detailRows.length === 2) {
+        html += buildPairFlowHtml(detailRows[0], detailRows[1]);
+        if (!state.flows) {
+          ensureFlowsLoaded().then(() => renderDetail());
+        }
+      }
+      container.innerHTML = html;
+    }
+
+    function focusStation(row) {
+      const marker = state.stationMarkerIndex.get(String(row.station_id));
+      if (marker) {
+        map.setView(marker.getLatLng(), Math.max(map.getZoom(), 13), { animate: false });
+        marker.openPopup();
+      }
+    }
+
+    function applyStationSelection(row, { toggle = true, focus = true } = {}) {
+      const stationId = String(row.station_id);
+      state.activeStationId = stationId;
+
+      if (toggle) {
+        if (state.selectedStationIds.has(stationId)) {
+          state.selectedStationIds.delete(stationId);
+        } else {
+          state.selectedStationIds.add(stationId);
+        }
+      } else {
+        state.selectedStationIds.add(stationId);
+      }
+
+      if (state.selectedStationIds.size >= 2 && !flowToggle.checked) {
+        flowToggle.checked = true;
+      }
+
+      renderStations();
+      if (flowToggle.checked) renderFlows();
+      if (focus) focusStation(row);
+    }
+
+    function renderStations() {
+      const stations = currentStations();
+      state.stationMarkers.clearLayers();
+      state.stationMarkerIndex = new Map();
+
+      const hasSelection = state.selectedStationIds.size > 0;
+      const stationsForMap = hasSelection
+        ? state.stations.filter((row) =>
+            toNumber(row.trip_year) === state.selectedYear &&
+            row.selected_usertype === selectedRider() &&
+            isStationSelected(row))
+        : stations;
+
+      stationsForMap.forEach((row) => {
+        const tier = normalizeTier(row);
+        const stationId = String(row.station_id);
+        const selected = isStationSelected(stationId);
+        const marker = L.marker(
+          [toNumber(row.latitude), toNumber(row.longitude)],
+          {
+            icon: markerIcon(tier, row.total_station_activity, selected),
+            title: row.station_name
+          }
+        );
+        marker.bindPopup(`${row.station_name}<br>${tierLabels[tier]} • ${formatNumber(row.total_station_activity)} activity`);
+        marker.on('click', () => applyStationSelection(row, { toggle: true, focus: true }));
+        state.stationMarkers.addLayer(marker);
+        state.stationMarkerIndex.set(stationId, marker);
+      });
+
+      if (stationsForMap.length && !hasSelection) {
+        const bounds = L.latLngBounds(stationsForMap.map((row) => [toNumber(row.latitude), toNumber(row.longitude)]));
+        map.fitBounds(bounds, { padding: [24, 24], maxZoom: 13 });
+      } else if (stationsForMap.length && hasSelection) {
+        const bounds = L.latLngBounds(stationsForMap.map((row) => [toNumber(row.latitude), toNumber(row.longitude)]));
+        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+      }
+
+      renderStationTable(stations);
+      renderStationSelectionSummary();
+      renderStationClassChart();
+      renderDetail();
+      if (flowToggle.checked) renderFlows();
+    }
+
+    function buildStationRowHtml(row) {
+      const tier = normalizeTier(row);
+      const stationId = String(row.station_id);
+      const classes = ['station-row'];
+      if (isStationSelected(stationId)) classes.push('selected-row');
+      if (state.activeStationId === stationId) classes.push('active-row');
+      return `
+        <tr class="${classes.join(' ')}" data-station-id="${row.station_id}" draggable="true">
+          <td>${row.station_name}</td>
+          <td><span class="tier-pill"><span class="dot ${tierClass[tier] || 'gray'}"></span>${tierLabels[tier] || tier}</span></td>
+          <td>${formatNumber(row.departures)}</td>
+          <td>${formatNumber(row.arrivals)}</td>
+          <td>${signed(row.net_departures)}</td>
+          <td>${refillBadgeHtml(row)}</td>
+          <td>${formatNumber(stationAllocation(row))}</td>
+        </tr>
+      `;
+    }
+
+    function renderStationTable(stations) {
+      ensureDropHandlers();
+
+      const pinnedRows = stations.filter((row) => isStationSelected(row));
+      const mainRows = [...stations]
+        .filter((row) => !isStationSelected(row))
+        .sort((a, b) => Math.abs(toNumber(b.net_departures)) - Math.abs(toNumber(a.net_departures)))
+        .slice(0, 25);
+
+      const rowLookup = new Map();
+      pinnedRows.concat(mainRows).forEach((row) => rowLookup.set(String(row.station_id), row));
+
+      const pinnedHeader = `<tr class="section-header"><td colspan="7">Selected (${pinnedRows.length}) — drag rows here to pin, drag down to unpin</td></tr>`;
+      const pinnedBody = pinnedRows.length
+        ? pinnedRows.map(buildStationRowHtml).join('')
+        : '<tr class="placeholder-row"><td colspan="7">No selected stations. Click a map dot, click a row, or drag a row here.</td></tr>';
+      pinnedTableBody.innerHTML = pinnedHeader + pinnedBody;
+
+      const mainHeader = '<tr class="section-header"><td colspan="7">All Stations (top 25 by absolute balance)</td></tr>';
+      const mainBody = mainRows.length
+        ? mainRows.map(buildStationRowHtml).join('')
+        : '<tr class="placeholder-row"><td colspan="7">No stations match the current filters.</td></tr>';
+      stationTableBody.innerHTML = mainHeader + mainBody;
+
+      attachRowHandlers(pinnedTableBody, 'pinned', rowLookup);
+      attachRowHandlers(stationTableBody, 'all', rowLookup);
+    }
+
+    function attachRowHandlers(tbody, region, rowLookup) {
+      tbody.querySelectorAll('tr[data-station-id]').forEach((rowElement) => {
+        rowElement.addEventListener('click', () => {
+          const row = rowLookup.get(rowElement.dataset.stationId);
+          if (!row) return;
+          if (!flowToggle.checked) flowToggle.checked = true;
+          applyStationSelection(row, { toggle: true, focus: true });
+        });
+        rowElement.addEventListener('dragstart', (e) => {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/station-id', rowElement.dataset.stationId);
+          e.dataTransfer.setData('text/from-region', region);
+          rowElement.classList.add('dragging');
+        });
+        rowElement.addEventListener('dragend', () => {
+          rowElement.classList.remove('dragging');
+        });
+      });
+    }
+
+    let dropHandlersAttached = false;
+    function ensureDropHandlers() {
+      if (dropHandlersAttached) return;
+      attachDropHandlers(pinnedTableBody, 'pinned');
+      attachDropHandlers(stationTableBody, 'all');
+      dropHandlersAttached = true;
+    }
+
+    function attachDropHandlers(tbody, targetRegion) {
+      tbody.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        tbody.classList.add('drop-target');
+      });
+      tbody.addEventListener('dragleave', (e) => {
+        if (!tbody.contains(e.relatedTarget)) tbody.classList.remove('drop-target');
+      });
+      tbody.addEventListener('drop', (e) => {
+        e.preventDefault();
+        tbody.classList.remove('drop-target');
+        const stationId = e.dataTransfer.getData('text/station-id');
+        const fromRegion = e.dataTransfer.getData('text/from-region');
+        if (!stationId || fromRegion === targetRegion) return;
+
+        if (targetRegion === 'pinned') {
+          state.selectedStationIds.add(stationId);
+          state.activeStationId = stationId;
+          if (!flowToggle.checked) flowToggle.checked = true;
+        } else {
+          state.selectedStationIds.delete(stationId);
+          if (state.activeStationId === stationId) state.activeStationId = null;
+        }
+        renderStations();
+        if (flowToggle.checked) renderFlows();
+      });
+    }
+
+    function renderStationSelectionSummary() {
+      const count = state.selectedStationIds.size;
+      if (showSelectedOnly.checked && count === 0) {
+        stationSelectionSummary.textContent = 'Show selected only is on, but no stations are selected yet.';
+        return;
+      }
+      if (!count) {
+        stationSelectionSummary.textContent = 'Click a map dot or drag rows up to pin. Selected stations focus flow lines.';
+        return;
+      }
+      stationSelectionSummary.textContent = `${count} station${count === 1 ? '' : 's'} selected. Flow lines focus on selected station activity.`;
+    }
+
+    const percentileLinePlugin = {
+      id: 'percentileLines',
+      afterDatasetsDraw(chart) {
+        const { ctx, chartArea, scales } = chart;
+        const lines = [
+          { value: 90000, label: '33rd percentile', color: '#6b7280' },
+          { value: 170000, label: '66th percentile', color: '#2dd4bf' }
+        ];
+
+        ctx.save();
+        ctx.setLineDash([6, 6]);
+        ctx.font = '12px system-ui, sans-serif';
+        lines.forEach((line) => {
+          const y = scales.y.getPixelForValue(line.value);
+          ctx.strokeStyle = line.color;
+          ctx.fillStyle = line.color;
+          ctx.beginPath();
+          ctx.moveTo(chartArea.left, y);
+          ctx.lineTo(chartArea.right, y);
+          ctx.stroke();
+          ctx.fillText(line.label, chartArea.left + 8, y - 6);
+        });
+        ctx.restore();
+      }
+    };
+
+    function renderStationClassChart() {
+      const selectedClass = stationClassSelect.value;
+      const rider = selectedRider();
+      const years = [2013, 2014, 2015];
+      let type = 'line';
+      let options = chartOptions('Total Station Activity');
+      let data;
+
+      if (selectedClass === 'all') {
+        type = 'bar';
+        options = chartOptions('Total Station Activity', true);
+        data = {
+          labels: years.map(String),
+          datasets: ['high', 'medium', 'no-mans'].map((tier) => ({
+            label: tierLabels[tier] || tier,
+            data: years.map((year) => state.stations
+              .filter((row) => toNumber(row.trip_year) === year)
+              .filter((row) => row.selected_usertype === rider)
+              .filter((row) => normalizeTier(row) === tier)
+              .reduce((sum, row) => sum + toNumber(row.total_station_activity), 0)),
+            backgroundColor: tierColors[tier],
+            borderColor: tierColors[tier],
+            borderWidth: 1
+          }))
+        };
+      } else {
+      const values = years.map((year) => state.stations
+        .filter((row) => toNumber(row.trip_year) === year)
+        .filter((row) => row.selected_usertype === rider)
+        .filter((row) => selectedClass === 'all' || normalizeTier(row) === selectedClass)
+        .reduce((sum, row) => sum + toNumber(row.total_station_activity), 0));
+
+        data = {
+        labels: years.map(String),
+        datasets: [{
+          label: `${tierLabels[selectedClass] || selectedClass} activity`,
+          data: values,
+          borderColor: tierColors[selectedClass] || '#2dd4bf',
+          backgroundColor: tierColors[selectedClass] || '#2dd4bf',
+          tension: 0.2
+        }]
+      };
+      }
+
+      if (state.stationChart) {
+        if (state.stationChart.config.type !== type) {
+          state.stationChart.destroy();
+          state.stationChart = null;
+        } else {
+        state.stationChart.data = data;
+        state.stationChart.options = options;
+        state.stationChart.update();
+        return;
+        }
+      }
+
+      state.stationChart = new Chart(document.getElementById('station-class-chart'), {
+        type,
+        data,
+        options
+      });
+    }
+
+    function chartOptions(yTitle, stacked = false) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            labels: { color: '#f0f0f0' }
+          },
+          tooltip: {
+            callbacks: {
+              label(context) {
+                return `${context.dataset.label}: ${Number(context.parsed.y).toLocaleString()}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#f0f0f0' },
+            grid: { color: '#263043' },
+            stacked
+          },
+          y: {
+            title: {
+              display: true,
+              text: yTitle,
+              color: '#f0f0f0'
+            },
+            ticks: {
+              color: '#f0f0f0',
+              callback(value) {
+                return Number(value).toLocaleString();
+              }
+            },
+            grid: { color: '#263043' },
+            stacked
+          }
+        }
+      };
+    }
+
+    function renderSeasonalChart() {
+      const split = splitRiderToggle.checked;
+      const datasets = [];
+      const years = [2013, 2014, 2015];
+      const yearColors = { 2013: '#6b7280', 2014: '#fbbf24', 2015: '#2dd4bf' };
+
+      if (split) {
+        years.forEach((year) => {
+          ['Subscriber', 'Customer'].forEach((rider) => {
+            datasets.push({
+              label: `${year} ${rider}`,
+              data: seasonOrder.map((season) => state.seasonal
+                .filter((row) => toNumber(row.trip_year) === year && row.season === season && row.usertype === rider)
+                .reduce((sum, row) => sum + toNumber(row.total_trips), 0)),
+              borderColor: rider === 'Subscriber' ? yearColors[year] : '#f87171',
+              backgroundColor: rider === 'Subscriber' ? yearColors[year] : '#f87171',
+              borderDash: rider === 'Customer' ? [5, 5] : [],
+              tension: 0.25
+            });
+          });
+        });
+      } else {
+        years.forEach((year) => {
+          datasets.push({
+            label: String(year),
+            data: seasonOrder.map((season) => state.seasonal
+              .filter((row) => toNumber(row.trip_year) === year && row.season === season)
+              .reduce((sum, row) => sum + toNumber(row.total_trips), 0)),
+            borderColor: yearColors[year],
+            backgroundColor: yearColors[year],
+            tension: 0.25
+          });
+        });
+      }
+
+      const data = { labels: seasonOrder, datasets };
+
+      if (state.seasonalChart) {
+        state.seasonalChart.data = data;
+        state.seasonalChart.update();
+        return;
+      }
+
+      state.seasonalChart = new Chart(document.getElementById('seasonal-chart'), {
+      type: 'line',
+      data,
+      options: chartOptions('Total Trips'),
+      plugins: [percentileLinePlugin]
+      });
+    }
+
+    async function ensureFlowsLoaded() {
+      if (state.flows) return;
+      flowToggle.disabled = true;
+      stationSelectionSummary.textContent = 'Loading route flows. This can take a few seconds because flows.csv is large.';
+      const rows = await loadCsv('data/flows.csv');
+      state.flows = rows;
+      flowToggle.disabled = false;
+    }
+
+    async function renderFlows() {
+      state.flowLayer.clearLayers();
+      if (!flowToggle.checked) return;
+      await ensureFlowsLoaded();
+
+      const tiers = selectedTiers();
+      const rider = selectedRider();
+      const selectedIds = state.selectedStationIds;
+      const routes = state.flows
+        .filter((row) => row.selected_usertype === rider)
+        .filter((row) => tiers.includes('all') || tiers.includes(row.start_activity_tier) || tiers.includes(row.end_activity_tier))
+        .filter((row) => {
+          if (!selectedIds.size) return true;
+          if (selectedIds.size === 1) {
+            return selectedIds.has(row.start_station_id) || selectedIds.has(row.end_station_id);
+          }
+          return selectedIds.has(row.start_station_id) && selectedIds.has(row.end_station_id);
+        })
+        .sort((a, b) => toNumber(b.trips) - toNumber(a.trips))
+        .slice(0, selectedIds.size ? 250 : 120);
+
+      const isPair = selectedIds.size === 2;
+      routes.forEach((route) => {
+        const dailyAvg = toNumber(route.trips) / FLOW_DAYS_TOTAL;
+        const line = L.polyline(
+          [
+            [toNumber(route.start_latitude), toNumber(route.start_longitude)],
+            [toNumber(route.end_latitude), toNumber(route.end_longitude)]
+          ],
+          {
+            color: tierColors[route.start_activity_tier] || '#2dd4bf',
+            weight: Math.max(1, Math.min(7, Math.sqrt(toNumber(route.trips)) / 10)),
+            opacity: isPair ? 0.85 : 0.55
+          }
+        )
+          .bindTooltip(`${route.start_station_name} → ${route.end_station_name}: ${formatNumber(route.trips)} trips total · ${dailyAvg.toFixed(2)}/day`)
+          .addTo(state.flowLayer);
+        if (isPair) {
+          line.bindTooltip(
+            `${route.start_station_name} → ${route.end_station_name}<br>${dailyAvg.toFixed(2)}/day · ${formatNumber(route.trips)} total`,
+            { permanent: true, direction: 'center', className: 'flow-pair-label' }
+          );
+        }
+      });
+      renderStationSelectionSummary();
+    }
+
+    function renderStationsHighlight() {
+      stationTableBody.querySelectorAll('tr[data-station-id]').forEach((row) => {
+        row.classList.toggle('selected-row', isStationSelected(row.dataset.stationId));
+      });
+      renderStationSelectionSummary();
+    }
+
+    function attachFilterHandlers() {
+      document.querySelectorAll('.year-filter').forEach((input) => {
+        input.addEventListener('change', () => {
+          state.selectedYear = toNumber(input.value);
+          updateFleetHero();
+          renderStations();
+        });
+      });
+
+      document.querySelectorAll('.tier-filter').forEach((input) => {
+        input.addEventListener('change', () => {
+          syncExclusiveCheckboxes(input, '.tier-filter');
+          renderStations();
+        });
+      });
+
+      document.querySelectorAll('.rider-filter').forEach((input) => {
+        input.addEventListener('change', () => {
+          syncExclusiveCheckboxes(input, '.rider-filter');
+          renderSeasonalChart();
+          renderStations();
+        });
+      });
+
+      stationClassSelect.addEventListener('change', renderStationClassChart);
+      splitRiderToggle.addEventListener('change', renderSeasonalChart);
+      flowToggle.addEventListener('change', renderFlows);
+      showSelectedOnly.addEventListener('change', renderStations);
+      clearStationSelection.addEventListener('click', () => {
+        state.selectedStationIds.clear();
+        state.activeStationId = null;
+        document.getElementById('show-selected-only').checked = false;
+        document.getElementById('flow-toggle').checked = false;
+        state.flowLayer.clearLayers();
+        renderStations();
+      });
+
+      const stationSearch = document.getElementById('station-search');
+      const searchHint = document.getElementById('search-hint');
+      stationSearch.addEventListener('input', () => {
+        const q = stationSearch.value.trim().toLowerCase();
+        const rows = document.querySelectorAll('#pinned-table-body tr[data-station-id], #station-table-body tr[data-station-id]');
+        let matchCount = 0;
+        rows.forEach((row) => {
+          const name = (row.querySelector('td')?.textContent || '').toLowerCase();
+          const matches = !q || name.includes(q);
+          row.classList.toggle('search-hidden', !matches);
+          if (matches) matchCount++;
+        });
+        if (q && matchCount === 0) {
+          searchHint.textContent = 'No stations match "' + stationSearch.value + '"';
+          searchHint.style.display = '';
+        } else if (q) {
+          searchHint.textContent = matchCount + ' station' + (matchCount === 1 ? '' : 's') + ' found — click to select';
+          searchHint.style.display = '';
+        } else {
+          searchHint.style.display = 'none';
+        }
+      });
+    }
+
+    async function initDashboard() {
+      try {
+        const [stations, seasonal, fleet, population] = await Promise.all([
+          loadCsv(files.stations),
+          loadCsv(files.seasonal),
+          loadCsv(files.fleet),
+          loadCsv(files.population)
+        ]);
+
+        state.stations = stations;
+        state.seasonal = seasonal;
+        state.fleet = fleet;
+        state.population = population;
+
+        attachFilterHandlers();
+        updateFleetHero();
+        renderSeasonalChart();
+        renderStations();
+        lastRefreshEl.textContent = `Last data refresh: ${new Date().toLocaleDateString()}`;
+      } catch (error) {
+        console.error(error);
+        bikesNeededEl.textContent = 'CSV error';
+        stationTableBody.innerHTML = '<tr><td colspan="7">Unable to load CSV data. Run src/extract.py and serve this page from the project root.</td></tr>';
+      }
+    }
+
+    initDashboard();
+  </script>
+</body>
+</html>

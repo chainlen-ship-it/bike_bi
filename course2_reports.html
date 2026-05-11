@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cyclistic Course 2 Reports</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #151923;
+      --panel-soft: #1b2130;
+      --text: #f0f0f0;
+      --muted: #9ca3af;
+      --teal: #2dd4bf;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --gray: #6b7280;
+      --green: #34d399;
+      --border: #263043;
+      --focus: #67e8f9;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+    }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    button, input, select { font: inherit; }
+
+    input[type="checkbox"]:focus-visible,
+    input[type="radio"]:focus-visible,
+    select:focus-visible,
+    button:focus-visible,
+    a:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    /* Site navigation (shared with dashboard.html) */
+    .site-nav {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px clamp(20px, 4vw, 56px);
+      background: #0a0c12;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .site-nav a {
+      color: var(--muted);
+      text-decoration: none;
+      padding: 6px 4px;
+    }
+
+    .site-nav a:hover,
+    .site-nav a:focus-visible {
+      color: var(--teal);
+      outline: none;
+    }
+
+    .site-nav a.is-current {
+      color: var(--teal);
+    }
+
+    .nav-divider {
+      color: var(--border);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      padding: 28px clamp(20px, 4vw, 56px);
+      border-bottom: 1px solid var(--teal);
+      background: #0d1016;
+    }
+
+    .eyebrow,
+    .section-label {
+      margin: 0 0 10px;
+      color: var(--teal);
+      font-size: 24px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .hero-number {
+      margin: 0;
+      color: #fff;
+      font-size: 36px;
+      font-weight: 850;
+      line-height: 1.1;
+    }
+
+    .hero-sub {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    main {
+      display: grid;
+      gap: 28px;
+      padding: 28px clamp(16px, 3vw, 40px) 34px;
+    }
+
+    .card-section {
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .card-section .section-label {
+      margin-bottom: 18px;
+    }
+
+    .chart-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 230px;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .chart-frame {
+      position: relative;
+      height: 320px;
+      min-width: 0;
+    }
+
+    .chart-side {
+      display: grid;
+      gap: 14px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #10141d;
+    }
+
+    .check-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      min-height: 34px;
+      color: var(--text);
+    }
+
+    .check-row input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--teal);
+      cursor: pointer;
+    }
+
+    .annotation {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .insight {
+      margin: 18px 0 0;
+      padding: 16px;
+      border-left: 4px solid var(--teal);
+      border-radius: 4px;
+      background: rgba(45, 212, 191, 0.08);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    /* Borough breakdown two-column grid */
+    .borough-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 28px;
+    }
+
+    /* KPI strip — Ernest's executive view */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+
+    .kpi-tile {
+      padding: 22px 18px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #10141d;
+    }
+
+    .kpi-label {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .kpi-value {
+      margin: 0;
+      color: var(--teal);
+      font-size: 36px;
+      font-weight: 850;
+      line-height: 1;
+    }
+
+    /* Persona divider + drill-down */
+    .persona-divider {
+      height: 1px;
+      margin: 22px 0 22px;
+      background: var(--border);
+    }
+
+    .subsection-label {
+      margin: 0 0 14px;
+      color: var(--teal);
+      font-size: 18px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: end;
+      margin-bottom: 14px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #10141d;
+    }
+
+    .filter-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 140px;
+    }
+
+    .filter-cell label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .filter-cell select {
+      min-height: 38px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #0d1016;
+      color: var(--text);
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    /* Drill-down table */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--teal);
+      font-size: 14px;
+      text-transform: uppercase;
+      background: #111722;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    th:hover { color: #fff; }
+
+    th .sort-indicator {
+      color: var(--yellow);
+      margin-left: 5px;
+    }
+
+    tbody tr:hover {
+      background: rgba(45, 212, 191, 0.09);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .pagination {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: flex-end;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .text-button {
+      min-height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #151923;
+      color: var(--text);
+      cursor: pointer;
+      padding: 6px 14px;
+    }
+
+    .text-button:hover,
+    .text-button:focus-visible {
+      border-color: var(--teal);
+    }
+
+    .text-button[disabled] {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    footer {
+      display: grid;
+      gap: 4px;
+      padding: 24px 16px 34px;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      .chart-layout,
+      .borough-grid {
+        grid-template-columns: 1fr;
+      }
+      .kpi-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      .hero { padding: 24px 18px; }
+      .hero-number { font-size: 28px; }
+      .eyebrow, .section-label { font-size: 22px; }
+      .kpi-strip { grid-template-columns: 1fr; }
+      .kpi-value { font-size: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav" aria-label="Page navigation">
+    <a href="dashboard.html">&larr; Fleet Intelligence</a>
+    <span class="nav-divider" aria-hidden="true">|</span>
+    <a href="course2_reports.html" class="is-current" aria-current="page">Course 2 Reports &rarr;</a>
+  </nav>
+
+  <header class="hero" aria-label="Course 2 Reports header">
+    <p class="eyebrow">Course 2 Reports</p>
+    <p class="hero-number">Weather, Geography, and Persona Views</p>
+    <p class="hero-sub">Backed by reporting_full_year and reporting_summer materialized tables (placeholder data shown).</p>
+  </header>
+
+  <main>
+    <!-- ====================================================================
+         SECTION 1 — Weather Impact on Ridership
+         ==================================================================== -->
+    <section class="card-section" aria-labelledby="weather-title">
+      <h2 id="weather-title" class="section-label">Weather Impact on Ridership</h2>
+      <div class="chart-layout">
+        <div class="chart-frame">
+          <canvas
+            id="weather-chart"
+            role="img"
+            aria-label="Scatter plot of daily trip count vs daily precipitation, colored by year (2014 gray, 2015 teal). Optional rider-type split.">
+          </canvas>
+        </div>
+        <aside class="chart-side">
+          <label class="check-row">
+            <input id="weather-rider-toggle" type="checkbox">
+            <span>Split by rider type</span>
+          </label>
+          <p class="annotation">Each point = one day. X axis: daily total precipitation (inches). Y axis: trip count.</p>
+          <p class="annotation">Source: <code>reporting_full_year</code> table.</p>
+        </aside>
+      </div>
+      <p class="insight" id="weather-insight">
+        Ridership drops <span id="weather-drop-pct">XX</span>% on days with precipitation above 0.5 inches.
+      </p>
+    </section>
+
+    <!-- ====================================================================
+         SECTION 2 — Borough Breakdown (two-column)
+         ==================================================================== -->
+    <section class="borough-grid" aria-labelledby="borough-section-title">
+      <h2 id="borough-section-title" class="visually-hidden" style="position:absolute;left:-9999px">Borough breakdown</h2>
+
+      <div class="card-section" aria-labelledby="summer-borough-title">
+        <h3 id="summer-borough-title" class="section-label">Summer Ridership By Borough</h3>
+        <div class="chart-frame">
+          <canvas
+            id="borough-summer-chart"
+            role="img"
+            aria-label="Bar chart of trip counts per borough for July through September. 2015 in teal, 2014 in yellow.">
+          </canvas>
+        </div>
+        <p class="annotation" style="margin-top:12px">Jul–Sep only. Source: <code>reporting_summer</code> table.</p>
+      </div>
+
+      <div class="card-section" aria-labelledby="full-year-borough-title">
+        <h3 id="full-year-borough-title" class="section-label">Full Year Ridership By Borough</h3>
+        <div class="chart-frame">
+          <canvas
+            id="borough-full-year-chart"
+            role="img"
+            aria-label="Bar chart of full-year trip counts per borough. 2015 in teal, 2014 in yellow.">
+          </canvas>
+        </div>
+        <p class="annotation" style="margin-top:12px">All months. Source: <code>reporting_full_year</code> table.</p>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SECTION 3 — Dual Persona View
+         ==================================================================== -->
+    <section class="card-section" aria-labelledby="persona-title">
+      <h2 id="persona-title" class="section-label">Dual Persona View</h2>
+
+      <!-- Top: Executive KPI strip (Ernest Cox) -->
+      <h3 class="subsection-label" id="exec-strip-label">Executive Overview &middot; Ernest Cox</h3>
+      <div class="kpi-strip" role="group" aria-labelledby="exec-strip-label">
+        <div class="kpi-tile">
+          <p class="kpi-label">Total Trips</p>
+          <p class="kpi-value" id="kpi-total-trips">8,452,193</p>
+        </div>
+        <div class="kpi-tile">
+          <p class="kpi-label">Avg Trip Minutes</p>
+          <p class="kpi-value" id="kpi-avg-minutes">14.2</p>
+        </div>
+        <div class="kpi-tile">
+          <p class="kpi-label">Peak Day</p>
+          <p class="kpi-value" id="kpi-peak-day">Aug 22</p>
+        </div>
+        <div class="kpi-tile">
+          <p class="kpi-label">Top Borough</p>
+          <p class="kpi-value" id="kpi-top-borough">Manhattan</p>
+        </div>
+      </div>
+
+      <div class="persona-divider" role="separator"></div>
+
+      <!-- Bottom: Analyst drill-down (Tessa Blackwell) -->
+      <h3 class="subsection-label" id="analyst-drill-label">Analyst Drill-Down &middot; Tessa Blackwell</h3>
+
+      <div class="filter-bar" role="group" aria-labelledby="analyst-drill-label">
+        <div class="filter-cell">
+          <label for="filter-year">Year</label>
+          <select id="filter-year">
+            <option value="all">All</option>
+            <option value="2014">2014</option>
+            <option value="2015" selected>2015</option>
+          </select>
+        </div>
+        <div class="filter-cell">
+          <label for="filter-borough">Borough</label>
+          <select id="filter-borough">
+            <option value="all">All</option>
+            <option value="Manhattan">Manhattan</option>
+            <option value="Brooklyn">Brooklyn</option>
+            <option value="Queens">Queens</option>
+          </select>
+        </div>
+        <div class="filter-cell">
+          <label for="filter-rider">Rider Type</label>
+          <select id="filter-rider">
+            <option value="all">All</option>
+            <option value="Subscriber">Subscriber</option>
+            <option value="Customer">Customer</option>
+          </select>
+        </div>
+        <div class="filter-cell">
+          <label for="filter-precip">Precipitation</label>
+          <select id="filter-precip">
+            <option value="all">All</option>
+            <option value="none">None (0 in)</option>
+            <option value="light">Light (&lt;0.5 in)</option>
+            <option value="heavy">Heavy (&ge;0.5 in)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrap" aria-label="Analyst drill-down table">
+        <table>
+          <thead>
+            <tr>
+              <th data-sort="borough">Borough <span class="sort-indicator" aria-hidden="true"></span></th>
+              <th data-sort="neighborhood">Neighborhood <span class="sort-indicator" aria-hidden="true"></span></th>
+              <th data-sort="usertype">Usertype <span class="sort-indicator" aria-hidden="true"></span></th>
+              <th data-sort="avg_temp">Avg Temp (&deg;F) <span class="sort-indicator" aria-hidden="true"></span></th>
+              <th data-sort="avg_precip">Avg Precip (in) <span class="sort-indicator" aria-hidden="true"></span></th>
+              <th data-sort="trip_count">Trip Count <span class="sort-indicator" aria-hidden="true">&#9660;</span></th>
+            </tr>
+          </thead>
+          <tbody id="drill-down-body">
+            <tr><td colspan="6">Loading placeholder data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination" aria-label="Drill-down table pagination">
+        <button id="page-prev" class="text-button" type="button">Previous</button>
+        <span id="page-summary">Page 1 of 1</span>
+        <button id="page-next" class="text-button" type="button">Next</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div id="last-refresh">Last data refresh: placeholder data, not from CSV</div>
+    <div>Data: NYC Citi Bike Trips 2014–2015 | NOAA GSOD weather | NYC zip-code mapping</div>
+    <div>Cyclistic Course 2 Reports — Google BI Certificate Portfolio Project</div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <script>
+    /* ========================================================================
+       Placeholder data — no CSV wiring yet.
+       ======================================================================== */
+    const COLORS = {
+      teal: '#2dd4bf',
+      yellow: '#fbbf24',
+      gray: '#6b7280',
+      red: '#f87171',
+      muted: '#9ca3af',
+      text: '#f0f0f0',
+      border: '#263043'
+    };
+
+    // Generate 60 placeholder daily points per year with negative precip→trips correlation.
+    function makeWeatherPoints(year, riderSplit) {
+      const seed = year === 2014 ? 7 : 13;
+      const points = { all: [], subscriber: [], customer: [] };
+      for (let i = 0; i < 60; i += 1) {
+        const x = ((Math.sin(seed * (i + 1)) + 1) / 2) ** 2 * 1.8; // 0..1.8 in
+        const noise = (Math.cos((seed * 3 + i) * 1.3) * 4000);
+        const baseTrips = 38000 - x * 18000 + noise;
+        const total = Math.max(2000, Math.round(baseTrips + (year === 2015 ? 6000 : 0)));
+        const sub = Math.round(total * 0.78);
+        const cus = total - sub;
+        points.all.push({ x: Number(x.toFixed(2)), y: total });
+        points.subscriber.push({ x: Number(x.toFixed(2)), y: sub });
+        points.customer.push({ x: Number(x.toFixed(2)), y: cus });
+      }
+      return points;
+    }
+
+    const weatherData = {
+      2014: makeWeatherPoints(2014),
+      2015: makeWeatherPoints(2015)
+    };
+
+    // Compute the placeholder "ridership drops X% above 0.5 in" insight
+    function computeWetDropPct() {
+      const all = [...weatherData[2014].all, ...weatherData[2015].all];
+      const dry = all.filter((p) => p.x < 0.1).map((p) => p.y);
+      const wet = all.filter((p) => p.x >= 0.5).map((p) => p.y);
+      const avg = (arr) => arr.reduce((a, b) => a + b, 0) / Math.max(1, arr.length);
+      const drop = 1 - avg(wet) / avg(dry);
+      return Math.round(drop * 100);
+    }
+    document.getElementById('weather-drop-pct').textContent = computeWetDropPct();
+
+    // Borough breakdown placeholder values
+    const boroughs = ['Manhattan', 'Brooklyn', 'Queens'];
+    const boroughSummer = {
+      2014: [82000, 28500, 5200],
+      2015: [104000, 41200, 8400]
+    };
+    const boroughFullYear = {
+      2014: [314000, 108000, 19500],
+      2015: [402000, 158000, 31200]
+    };
+
+    // Drill-down table placeholder rows
+    const neighborhoodsByBorough = {
+      Manhattan: ['Midtown', 'Chelsea', 'East Village', 'Tribeca', 'Upper East Side', 'Harlem', 'Financial District'],
+      Brooklyn: ['Williamsburg', 'DUMBO', 'Park Slope', 'Bushwick', 'Greenpoint'],
+      Queens: ['Long Island City', 'Astoria', 'Sunnyside']
+    };
+    const usertypes = ['Subscriber', 'Customer'];
+    const drillRows = [];
+    let rowSeed = 0;
+    function pseudoRandom() {
+      rowSeed += 1;
+      return ((Math.sin(rowSeed * 12.9898) * 43758.5453) % 1 + 1) % 1;
+    }
+    [2014, 2015].forEach((year) => {
+      Object.entries(neighborhoodsByBorough).forEach(([borough, nbhds]) => {
+        nbhds.forEach((nbhd) => {
+          usertypes.forEach((utype) => {
+            const baseTemp = 55 + pseudoRandom() * 12 + (year === 2015 ? 0.5 : 0);
+            const baseTrips = (
+              borough === 'Manhattan' ? 4000 :
+              borough === 'Brooklyn' ? 1800 : 600
+            ) * (utype === 'Subscriber' ? 1 : 0.18) * (year === 2015 ? 1.25 : 1) * (0.7 + pseudoRandom() * 0.6);
+            drillRows.push({
+              year,
+              borough,
+              neighborhood: nbhd,
+              usertype: utype,
+              avg_temp: Number(baseTemp.toFixed(1)),
+              avg_precip: Number((pseudoRandom() * 0.6).toFixed(2)),
+              trip_count: Math.round(baseTrips)
+            });
+          });
+        });
+      });
+    });
+
+    /* ========================================================================
+       Chart rendering
+       ======================================================================== */
+    function chartOptionsScatter() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: COLORS.text } },
+          tooltip: {
+            callbacks: {
+              label(ctx) {
+                return `${ctx.dataset.label}: ${ctx.parsed.x} in, ${Number(ctx.parsed.y).toLocaleString()} trips`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            title: { display: true, text: 'Daily precipitation (in)', color: COLORS.text },
+            ticks: { color: COLORS.text },
+            grid: { color: COLORS.border }
+          },
+          y: {
+            title: { display: true, text: 'Trip count', color: COLORS.text },
+            ticks: {
+              color: COLORS.text,
+              callback(v) { return Number(v).toLocaleString(); }
+            },
+            grid: { color: COLORS.border }
+          }
+        }
+      };
+    }
+
+    function buildWeatherDatasets(split) {
+      if (!split) {
+        return [
+          { label: '2014', data: weatherData[2014].all, backgroundColor: COLORS.gray, borderColor: COLORS.gray, pointRadius: 4 },
+          { label: '2015', data: weatherData[2015].all, backgroundColor: COLORS.teal, borderColor: COLORS.teal, pointRadius: 4 }
+        ];
+      }
+      return [
+        { label: '2014 Subscriber', data: weatherData[2014].subscriber, backgroundColor: COLORS.gray, borderColor: COLORS.gray, pointRadius: 4 },
+        { label: '2014 Customer', data: weatherData[2014].customer, backgroundColor: COLORS.muted, borderColor: COLORS.muted, pointRadius: 4, pointStyle: 'triangle' },
+        { label: '2015 Subscriber', data: weatherData[2015].subscriber, backgroundColor: COLORS.teal, borderColor: COLORS.teal, pointRadius: 4 },
+        { label: '2015 Customer', data: weatherData[2015].customer, backgroundColor: COLORS.yellow, borderColor: COLORS.yellow, pointRadius: 4, pointStyle: 'triangle' }
+      ];
+    }
+
+    let weatherChart = new Chart(document.getElementById('weather-chart'), {
+      type: 'scatter',
+      data: { datasets: buildWeatherDatasets(false) },
+      options: chartOptionsScatter()
+    });
+
+    document.getElementById('weather-rider-toggle').addEventListener('change', (e) => {
+      weatherChart.data.datasets = buildWeatherDatasets(e.target.checked);
+      weatherChart.update();
+    });
+
+    function chartOptionsBar(yLabel) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: COLORS.text } },
+          tooltip: {
+            callbacks: {
+              label(ctx) {
+                return `${ctx.dataset.label}: ${Number(ctx.parsed.y).toLocaleString()}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: COLORS.text }, grid: { color: COLORS.border } },
+          y: {
+            title: { display: true, text: yLabel, color: COLORS.text },
+            ticks: {
+              color: COLORS.text,
+              callback(v) { return Number(v).toLocaleString(); }
+            },
+            grid: { color: COLORS.border }
+          }
+        }
+      };
+    }
+
+    function makeBoroughChart(canvasId, summerOrYear) {
+      const data = summerOrYear === 'summer' ? boroughSummer : boroughFullYear;
+      return new Chart(document.getElementById(canvasId), {
+        type: 'bar',
+        data: {
+          labels: boroughs,
+          datasets: [
+            { label: '2014', data: data[2014], backgroundColor: COLORS.yellow, borderColor: COLORS.yellow, borderWidth: 1 },
+            { label: '2015', data: data[2015], backgroundColor: COLORS.teal, borderColor: COLORS.teal, borderWidth: 1 }
+          ]
+        },
+        options: chartOptionsBar('Trip count')
+      });
+    }
+    makeBoroughChart('borough-summer-chart', 'summer');
+    makeBoroughChart('borough-full-year-chart', 'fullyear');
+
+    /* ========================================================================
+       Drill-down table — filter, sort, paginate
+       ======================================================================== */
+    const PAGE_SIZE = 20;
+    const tableState = {
+      sortKey: 'trip_count',
+      sortDir: 'desc',
+      page: 1
+    };
+
+    const filterEls = {
+      year: document.getElementById('filter-year'),
+      borough: document.getElementById('filter-borough'),
+      rider: document.getElementById('filter-rider'),
+      precip: document.getElementById('filter-precip')
+    };
+    const drillBody = document.getElementById('drill-down-body');
+    const pageSummary = document.getElementById('page-summary');
+    const prevBtn = document.getElementById('page-prev');
+    const nextBtn = document.getElementById('page-next');
+
+    function precipBucket(value) {
+      if (value === 0) return 'none';
+      if (value < 0.5) return 'light';
+      return 'heavy';
+    }
+
+    function applyFilters() {
+      const y = filterEls.year.value;
+      const b = filterEls.borough.value;
+      const r = filterEls.rider.value;
+      const p = filterEls.precip.value;
+      return drillRows.filter((row) => {
+        if (y !== 'all' && String(row.year) !== y) return false;
+        if (b !== 'all' && row.borough !== b) return false;
+        if (r !== 'all' && row.usertype !== r) return false;
+        if (p !== 'all' && precipBucket(row.avg_precip) !== p) return false;
+        return true;
+      });
+    }
+
+    function applySort(rows) {
+      const { sortKey, sortDir } = tableState;
+      const dir = sortDir === 'asc' ? 1 : -1;
+      return [...rows].sort((a, b) => {
+        const av = a[sortKey];
+        const bv = b[sortKey];
+        if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+        return String(av).localeCompare(String(bv)) * dir;
+      });
+    }
+
+    function renderDrillDown() {
+      const filtered = applyFilters();
+      const sorted = applySort(filtered);
+      const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+      if (tableState.page > totalPages) tableState.page = totalPages;
+      const start = (tableState.page - 1) * PAGE_SIZE;
+      const slice = sorted.slice(start, start + PAGE_SIZE);
+
+      if (!slice.length) {
+        drillBody.innerHTML = '<tr><td colspan="6">No rows match the current filters.</td></tr>';
+      } else {
+        drillBody.innerHTML = slice.map((row) => `
+          <tr>
+            <td>${row.borough}</td>
+            <td>${row.neighborhood}</td>
+            <td>${row.usertype}</td>
+            <td>${row.avg_temp.toFixed(1)}</td>
+            <td>${row.avg_precip.toFixed(2)}</td>
+            <td>${row.trip_count.toLocaleString()}</td>
+          </tr>
+        `).join('');
+      }
+
+      pageSummary.textContent = `Page ${tableState.page} of ${totalPages} (${sorted.length} rows)`;
+      prevBtn.disabled = tableState.page <= 1;
+      nextBtn.disabled = tableState.page >= totalPages;
+
+      // Sort indicator on headers
+      document.querySelectorAll('th[data-sort]').forEach((th) => {
+        const indicator = th.querySelector('.sort-indicator');
+        if (!indicator) return;
+        if (th.dataset.sort === tableState.sortKey) {
+          indicator.textContent = tableState.sortDir === 'asc' ? '▲' : '▼';
+        } else {
+          indicator.textContent = '';
+        }
+      });
+    }
+
+    document.querySelectorAll('th[data-sort]').forEach((th) => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.sort;
+        if (tableState.sortKey === key) {
+          tableState.sortDir = tableState.sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          tableState.sortKey = key;
+          tableState.sortDir = (key === 'trip_count' || key === 'avg_temp' || key === 'avg_precip') ? 'desc' : 'asc';
+        }
+        tableState.page = 1;
+        renderDrillDown();
+      });
+    });
+
+    Object.values(filterEls).forEach((el) => {
+      el.addEventListener('change', () => {
+        tableState.page = 1;
+        renderDrillDown();
+      });
+    });
+
+    prevBtn.addEventListener('click', () => {
+      if (tableState.page > 1) { tableState.page -= 1; renderDrillDown(); }
+    });
+    nextBtn.addEventListener('click', () => {
+      tableState.page += 1; renderDrillDown();
+    });
+
+    renderDrillDown();
+  </script>
+</body>
+</html>

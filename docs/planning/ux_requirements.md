@@ -92,8 +92,8 @@ Per stakeholder Sara Romero:
 ---
 
 ### Data Refresh
-- Dashboard reads from data/ directory (pre-exported CSVs)
-- Run src/extract.py to refresh before opening dashboard.html
+- Dashboard reads from backend/data/ directory (pre-exported CSVs)
+- Run backend/app/src/extract.py to refresh before opening frontend/source/dashboard.html
 - Last refresh date displayed in footer
 - No live BigQuery connection required to view dashboard
 
@@ -112,3 +112,7 @@ Per stakeholder Sara Romero:
   one view.
 - **Weather annotations:** tooltip on hover, 
   not persistent label. Keeps chart clean.
+- **Refill need:** calculated as `max(trips out - trips in, 0)`.
+  Bikes returned to the station offset bikes that leave the station.
+  Station detail must show the visible calculation, e.g.
+  `12,000 out - 9,500 in = 2,500 bikes/year (6.8/day)`.
